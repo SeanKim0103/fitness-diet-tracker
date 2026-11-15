@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko" class="antialiased">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>FitLog - 데일리 운동 &amp; 식단</title>
+
+  <!-- PWA & Mobile App Meta Tags -->
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FitLog" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Mobile-friendly tap & safe-area adjustments */
+    body {
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .pb-safe {
+      padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    }
+    .bottom-nav-safe {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    /* Hide number input spinners for cleaner mobile UI */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+    /* Custom scrollbar for category pills */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-200">
+
+  <!-- Top Sticky Header -->
+  <header class="sticky top-0 z-30 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-xl mx-auto px-4 pt-3 pb-2.5">
+      <!-- Brand & Utility Row -->
+      <div class="flex items-center justify-between mb-2.5">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+            FL
+          </div>
+          <div>
+            <h1 class="text-base font-bold leading-tight tracking-tight">FitLog</h1>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-none">데일리 운동 &amp; 식단 기록</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <button id="btn-today" type="button" class="hidden px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition">
+            오늘
+          </button>
+          <button id="btn-theme" type="button" aria-label="다크 모드 전환" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <!-- Sun / Moon icon injected by JS -->
+          </button>
+          <button id="btn-settings" type="button" aria-label="설정 및 백업" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Date Selector Bar -->
+      <div class="flex items-center justify-between bg-slate-100 dark:bg-slate-800/80 rounded-xl p-1">
+        <button id="btn-prev-day" type="button" class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 shadow-none hover:shadow-sm transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>어제</span>
+        </button>
+
+        <div class="relative flex items-center justify-center">
+          <label for="date-picker" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/70 dark:hover:bg-slate-700/70 transition">
+            <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span id="date-display" class="text-sm font-semibold tabular-nums"></span>
+          </label>
+          <input id="date-picker" type="date" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" aria-label="날짜 선택" />
+        </div>
+
+        <button id="btn-next-day" type="button" class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 shadow-none hover:shadow-sm transition">
+          <span>내일</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-xl mx-auto px-4 pt-4 pb-safe space-y-4">
+
+    <!-- ==================== WORKOUT TAB ==================== -->
+    <section id="tab-workout" class="space-y-4">
+      <!-- Workout Summary Card -->
+      <div class="grid grid-cols-3 gap-2.5">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">운동 종목</p>
+          <p id="workout-stat-exercises" class="text-lg font-bold mt-0.5 tabular-nums">0개</p>
+        </div>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">완료 세트</p>
+          <p id="workout-stat-sets" class="text-lg font-bold mt-0.5 text-indigo-600 dark:text-indigo-400 tabular-nums">0 / 0</p>
+        </div>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">총 볼륨</p>
+          <p id="workout-stat-volume" class="text-lg font-bold mt-0.5 tabular-nums">0 kg</p>
+        </div>
+      </div>
+
+      <!-- Add Workout Form Card -->
+      <form id="workout-form" class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+            새 운동 추가
+          </h2>
+          <button id="btn-workout-prev-lookup" type="button" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline hidden">
+            이전 기록 불러오기
+          </button>
+        </div>
+
+        <!-- Category Pills -->
+        <div id="workout-categories" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          <!-- Rendered by JS -->
+        </div>
+
+        <!-- Exercise Name -->
+        <div>
+          <label for="workout-name" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">종목명</label>
+          <input id="workout-name" type="text" list="workout-name-suggestions" placeholder="예: 벤치프레스, 스쿼트, 러닝" required
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <datalist id="workout-name-suggestions"></datalist>
+        </div>
+
+        <!-- Previous Record Reference Banner -->
+        <div id="prev-record-banner" class="hidden rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/70 dark:border-indigo-800/60 px-3 py-2 flex items-center justify-between gap-2">
+          <div class="text-xs text-indigo-900 dark:text-indigo-200">
+            <span class="font-semibold">이전 기록</span>
+            <span id="prev-record-text" class="ml-1 text-indigo-700 dark:text-indigo-300"></span>
+          </div>
+          <button id="btn-apply-prev" type="button" class="shrink-0 px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition">
+            불러오기
+          </button>
+        </div>
+
+        <!-- Weight / Reps / Sets -->
+        <div class="grid grid-cols-3 gap-2.5">
+          <div>
+            <label for="workout-weight" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">무게 (kg)</label>
+            <input id="workout-weight" type="number" step="0.5" min="0" placeholder="0" value="0"
+              class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-center font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label for="workout-reps" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">횟수 (reps)</label>
+            <input id="workout-reps" type="number" min="1" placeholder="10" value="10" required
+              class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-center font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label for="workout-sets" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">세트 수</label>
+            <input id="workout-sets" type="number" min="1" max="20" placeholder="3" value="3" required
+              class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-center font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-semibold text-sm shadow-sm transition">
+          + 운동 추가하기
+        </button>
+      </form>
+
+      <!-- Workout List -->
+      <div id="workout-list" class="space-y-3">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- ==================== DIET TAB ==================== -->
+    <section id="tab-diet" class="hidden space-y-4">
+      <!-- Daily Nutrition Progress Card -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold">오늘의 영양 섭취</h2>
+          <button id="btn-edit-goals" type="button" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+            목표 설정
+          </button>
+        </div>
+
+        <!-- Calories Progress -->
+        <div>
+          <div class="flex items-baseline justify-between mb-1.5">
+            <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">칼로리</span>
+            <div class="text-xs tabular-nums">
+              <span id="diet-cal-current" class="text-base font-bold text-slate-900 dark:text-white">0</span>
+              <span class="text-slate-400"> / <span id="diet-cal-goal">2200</span> kcal</span>
+            </div>
+          </div>
+          <div class="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div id="diet-cal-bar" class="h-full bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p id="diet-cal-status" class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 text-right tabular-nums"></p>
+        </div>
+
+        <!-- Macros Progress -->
+        <div class="grid grid-cols-3 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
+          <!-- Carbs -->
+          <div>
+            <div class="flex justify-between text-[11px] mb-1">
+              <span class="font-medium text-amber-600 dark:text-amber-400">탄수화물</span>
+              <span class="tabular-nums text-slate-500 dark:text-slate-400"><strong id="diet-carbs-current" class="text-slate-800 dark:text-slate-200">0</strong>/<span id="diet-carbs-goal">250</span>g</span>
+            </div>
+            <div class="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div id="diet-carbs-bar" class="h-full bg-amber-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+          <!-- Protein -->
+          <div>
+            <div class="flex justify-between text-[11px] mb-1">
+              <span class="font-medium text-sky-600 dark:text-sky-400">단백질</span>
+              <span class="tabular-nums text-slate-500 dark:text-slate-400"><strong id="diet-protein-current" class="text-slate-800 dark:text-slate-200">0</strong>/<span id="diet-protein-goal">150</span>g</span>
+            </div>
+            <div class="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div id="diet-protein-bar" class="h-full bg-sky-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+          <!-- Fat -->
+          <div>
+            <div class="flex justify-between text-[11px] mb-1">
+              <span class="font-medium text-rose-600 dark:text-rose-400">지방</span>
+              <span class="tabular-nums text-slate-500 dark:text-slate-400"><strong id="diet-fat-current" class="text-slate-800 dark:text-slate-200">0</strong>/<span id="diet-fat-goal">70</span>g</span>
+            </div>
+            <div class="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div id="diet-fat-bar" class="h-full bg-rose-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Diet Form Card -->
+      <form id="diet-form" class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3.5">
+        <h2 class="text-sm font-bold flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          식단 추가
+        </h2>
+
+        <!-- Meal Pills -->
+        <div id="diet-meals" class="grid grid-cols-4 gap-1.5">
+          <!-- Rendered by JS -->
+        </div>
+
+        <!-- Food Name -->
+        <div>
+          <label for="diet-name" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">음식명</label>
+          <input id="diet-name" type="text" list="diet-name-suggestions" placeholder="예: 닭가슴살 150g, 현미밥" required
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          <datalist id="diet-name-suggestions"></datalist>
+        </div>
+
+        <!-- Previous Food Suggestion Banner -->
+        <div id="prev-food-banner" class="hidden rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/70 dark:border-emerald-800/60 px-3 py-2 flex items-center justify-between gap-2">
+          <div class="text-xs text-emerald-900 dark:text-emerald-200">
+            <span class="font-semibold">최근 입력</span>
+            <span id="prev-food-text" class="ml-1 text-emerald-700 dark:text-emerald-300"></span>
+          </div>
+          <button id="btn-apply-prev-food" type="button" class="shrink-0 px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition">
+            불러오기
+          </button>
+        </div>
+
+        <!-- Calories & Macros -->
+        <div class="grid grid-cols-4 gap-2">
+          <div>
+            <label for="diet-calories" class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">칼로리(kcal)</label>
+            <input id="diet-calories" type="number" min="0" placeholder="0" required
+              class="w-full px-2 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-center font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label for="diet-carbs" class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">탄수(g)</label>
+            <input id="diet-carbs" type="number" step="0.1" min="0" placeholder="0" value="0"
+              class="w-full px-2 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-center font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label for="diet-protein" class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">단백(g)</label>
+            <input id="diet-protein" type="number" step="0.1" min="0" placeholder="0" value="0"
+              class="w-full px-2 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-center font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label for="diet-fat" class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">지방(g)</label>
+            <input id="diet-fat" type="number" step="0.1" min="0" placeholder="0" value="0"
+              class="w-full px-2 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-center font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-semibold text-sm shadow-sm transition">
+          + 식단 추가하기
+        </button>
+      </form>
+
+      <!-- Diet Meal List -->
+      <div id="diet-list" class="space-y-3">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Tab Navigation -->
+  <nav class="fixed bottom-0 inset-x-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 bottom-nav-safe">
+    <div class="max-w-xl mx-auto grid grid-cols-2 h-16">
+      <button id="nav-workout" type="button" class="flex flex-col items-center justify-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold transition">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h2m14 0h2M5 7v6a1 1 0 001 1h1V6H6a1 1 0 00-1 1zm14 0v6a1 1 0 01-1 1h-1V6h1a1 1 0 011 1zM7 10h10" />
+        </svg>
+        <span class="text-xs">운동 기록</span>
+      </button>
+      <button id="nav-diet" type="button" class="flex flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 font-medium transition">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+        <span class="text-xs">식단 기록</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Settings & Backup Modal -->
+  <div id="settings-modal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-sm p-0 sm:p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-h-[90vh] overflow-y-auto p-5 space-y-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold">설정 및 데이터 관리</h3>
+        <button id="btn-close-settings" type="button" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Daily Nutrition Goals -->
+      <form id="goals-form" class="space-y-3">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">일일 식단 목표</h4>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label for="goal-calories" class="block text-xs font-medium mb-1">목표 칼로리 (kcal)</label>
+            <input id="goal-calories" type="number" min="100" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold tabular-nums" />
+          </div>
+          <div>
+            <label for="goal-carbs" class="block text-xs font-medium mb-1">탄수화물 (g)</label>
+            <input id="goal-carbs" type="number" min="1" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold tabular-nums" />
+          </div>
+          <div>
+            <label for="goal-protein" class="block text-xs font-medium mb-1">단백질 (g)</label>
+            <input id="goal-protein" type="number" min="1" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold tabular-nums" />
+          </div>
+          <div>
+            <label for="goal-fat" class="block text-xs font-medium mb-1">지방 (g)</label>
+            <input id="goal-fat" type="number" min="1" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold tabular-nums" />
+          </div>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition">
+          목표 저장
+        </button>
+      </form>
+
+      <hr class="border-slate-200 dark:border-slate-800" />
+
+      <!-- Backup & Export -->
+      <div class="space-y-2.5">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">백업 및 내보내기</h4>
+        <div class="grid grid-cols-1 gap-2">
+          <button id="btn-export-json" type="button" class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-semibold transition">
+            <span>JSON 전체 백업 내보내기</span>
+          </button>
+
+          <label class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-semibold cursor-pointer transition">
+            <span>JSON 백업 불러오기 (복원)</span>
+            <input id="input-import-json" type="file" accept=".json,application/json" class="hidden" />
+          </label>
+
+          <button id="btn-export-csv" type="button" class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-sm font-semibold transition">
+            <span>CSV 파일 다운로드 (엑셀용)</span>
+          </button>
+        </div>
+      </div>
+
+      <hr class="border-slate-200 dark:border-slate-800" />
+
+      <!-- Danger Zone -->
+      <div>
+        <button id="btn-clear-all" type="button" class="w-full py-2.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold transition">
+          전체 데이터 초기화
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold shadow-lg transition-opacity"></div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

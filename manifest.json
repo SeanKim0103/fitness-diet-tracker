@@ -1,0 +1,19 @@
+{
+  "name": "FitLog - 데일리 운동 & 식단 트래커",
+  "short_name": "FitLog",
+  "description": "개인용 데일리 운동 및 식단 기록 웹 애플리케이션",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
